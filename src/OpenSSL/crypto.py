@@ -30,6 +30,11 @@ FILETYPE_TEXT = 2 ** 16 - 1
 TYPE_RSA = _lib.EVP_PKEY_RSA
 TYPE_DSA = _lib.EVP_PKEY_DSA
 
+PKCS7_NOINTERN = _lib.PKCS7_NOINTERN
+PKCS7_TEXT = _lib.PKCS7_TEXT
+PKCS7_NOVERIFY = _lib.PKCS7_NOVERIFY
+PKCS7_NOCHAIN = _lib.PKCS7_NOCHAIN
+PKCS7_NOSIGS = _lib.PKCS7_NOSIGS
 
 class Error(Exception):
     """
@@ -2187,6 +2192,45 @@ class PKCS7(object):
         buf = _ffi.new("char *")
         _lib.BIO_get_mem_data(bio, [buf])
         return _ffi.string(buf)
+
+    def verify(self, store, certs=None, data=None, flags=0):
+        """
+        Verifies the signed data with the PKCS7 structure.
+        ``data`` is required in case it is "detached" in the PKCS7.
+
+        :param X509Store store: The certificate store used for chain verification.
+        :param certs: (optional) The certificates from where the signer's
+                      certificate is located in addition to those
+                      contained in the PKCS7 structure.
+        :param bytes data: (optional) The signed data. Required when the PKCS7
+                           structure only contains the signature.
+        :param int flags: (optional) PKCS7_NOINTERN, PKCS7_TEXT, PKCS7_NOVERIFY,
+                          PKCS7_NOCHAIN or PKCS7_NOSIGS.
+        :return: :py:const:`True` if the signature is correct.
+        :rtype: :py:class:`bool`
+        :raises Error: If the signature is invalid, the signer's certificate is,
+                       invalid, or there was some problem verifying the data.
+        """
+        _certs = _ffi.new("Cryptography_STACK_OF_X509**")
+        _certs[0] = _lib.sk_X509_new_null()
+        _certs = _ffi.gc(_certs[0], _lib.sk_X509_free)
+        if certs is not None:
+            for pycert in certs:
+                _lib.sk_X509_push(_certs, pycert._x509)
+
+        out = _lib.PKCS7_dataInit(self._pkcs7, _ffi.NULL)
+        if out == _ffi.NULL:
+            _raise_current_error()
+        out = _ffi.gc(out, _lib.BIO_free_all)
+
+        if data is None:
+            _data = _ffi.NULL
+        else:
+            _data = _new_mem_buf(data)
+
+        if not _lib.PKCS7_verify(self._pkcs7, _certs, store._store, _data, _ffi.NULL, flags):
+            _raise_current_error()
+        return True
 
 
 PKCS7Type = PKCS7
