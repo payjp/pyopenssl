@@ -789,6 +789,14 @@ class X509ExtTests(TestCase):
         # Expect to get back the DER encoded form of CA:true.
         self.assertEqual(ext.get_data(), b('0\x03\x01\x01\xff'))
 
+    def test_get_oid(self):
+        """
+        :py:meth:`X509Extension.get_oid` returns a string giving the oid of
+        the extension.
+        """
+        ext = X509Extension(b('basicConstraints'), True, b('CA:true'))
+        self.assertEqual(ext.get_oid(), b('\x06\x03U\x1d\x13\x7f'))
+
     def test_get_data_wrong_args(self):
         """
         :py:meth:`X509Extension.get_data` raises :py:exc:`TypeError` if passed

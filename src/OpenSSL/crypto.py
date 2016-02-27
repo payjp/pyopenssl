@@ -792,6 +792,23 @@ class X509Extension(object):
         result_length = _lib.ASN1_STRING_length(string_result)
         return _ffi.buffer(char_result, result_length)[:]
 
+    def get_oid(self):
+        """
+        Returns the OID of the X509 extension. The result is a byte string.
+
+        :return: The OID.
+        :rtype: :py:data:`bytes`
+        """
+
+        obj = _lib.X509_EXTENSION_get_object(self._extension)
+        ptr = _ffi.new("unsigned char **")
+        ptr[0] = _ffi.NULL
+        objlen = _lib.i2d_ASN1_OBJECT(obj, ptr)
+        buf = _ffi.new("char[]", objlen)
+        ptr[0] = buf
+        _lib.i2d_ASN1_OBJECT(obj, ptr)
+        return _ffi.string(buf)
+
 
 X509ExtensionType = X509Extension
 
