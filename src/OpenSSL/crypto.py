@@ -282,6 +282,36 @@ class PKey(object):
         :return: The number of bits of the key.
         """
         return _lib.EVP_PKEY_bits(self._pkey)
+
+    def derive(self, peer):
+        """
+        Derive a shared secret from the private key using the specified
+        context.
+
+        :param peer: The peer key
+        :type peer: :py:class:`PKey`
+
+        :return: The derived shared secret
+        :rtype: :py:class:`bytes`
+        """
+        ctx = _lib.EVP_PKEY_CTX_new(self._pkey, _ffi.NULL)
+        if ctx == _ffi.NULL:
+            _raise_current_error()
+        ctx = _ffi.gc(ctx, _lib.EVP_PKEY_CTX_free)
+        if not _lib.EVP_PKEY_derive_init(ctx):
+            _raise_current_error()
+        if not _lib.EVP_PKEY_derive_set_peer(ctx, peer._pkey):
+            _raise_current_error()
+        keylen = _ffi.new('size_t[]', 1)
+        if not _lib.EVP_PKEY_derive(ctx, _ffi.NULL, keylen):
+            _raise_current_error()
+        key = _ffi.new('unsigned char[]', keylen[0])
+        if not _lib.EVP_PKEY_derive(ctx, key, keylen):
+            _raise_current_error()
+        return _ffi.buffer(key)
+
+
+
 PKeyType = PKey
 
 
