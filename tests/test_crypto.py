@@ -780,6 +780,22 @@ class X509ExtTests(TestCase):
         ext = X509Extension(b('nsComment'), True, b('foo bar'))
         self.assertEqual(ext.get_short_name(), b('nsComment'))
 
+    def test_get_long_name(self):
+        """
+        :py:meth:`X509Extension.get_long_name` returns a string giving the long
+        type name of the extension.
+        """
+        ext = X509Extension(b('basicConstraints'), True, b('CA:true'))
+        self.assertEqual(ext.get_long_name(), 'X509v3 Basic Constraints')
+
+    def test_get_oid(self):
+        """
+        :py:meth:`X509Extension.get_oid` returns a string giving the oid of
+        the extension.
+        """
+        ext = X509Extension(b('basicConstraints'), True, b('CA:true'))
+        self.assertEqual(ext.get_oid(), '2.5.29.19')
+
     def test_get_data(self):
         """
         :py:meth:`X509Extension.get_data` returns a string giving the data of

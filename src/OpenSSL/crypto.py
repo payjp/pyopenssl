@@ -777,6 +777,21 @@ class X509Extension(object):
         nid = _lib.OBJ_obj2nid(obj)
         return _ffi.string(_lib.OBJ_nid2sn(nid))
 
+    def get_long_name(self):
+        """
+        Returns the short type name of this X.509 extension.
+
+        The result is a byte string such as :py:const:`b"X509v3 Basic Constraints"`.
+
+        :return: The long type name.
+        :rtype: :py:data:`bytes`
+
+        .. versionadded:: 0.16
+        """
+        obj = _lib.X509_EXTENSION_get_object(self._extension)
+        nid = _lib.OBJ_obj2nid(obj)
+        return _ffi.string(_lib.OBJ_nid2ln(nid))
+
     def get_data(self):
         """
         Returns the data of the X509 extension, encoded as ASN.1.
@@ -791,6 +806,24 @@ class X509Extension(object):
         char_result = _lib.ASN1_STRING_data(string_result)
         result_length = _lib.ASN1_STRING_length(string_result)
         return _ffi.buffer(char_result, result_length)[:]
+
+    def get_oid(self):
+        """
+        Returns the textual representation of the X509 extension oid.
+        The result is a byte string.
+
+        :return: The OID.
+        :rtype: :py:data:`bytes`
+        .. versionadded:: 0.16
+        """
+
+        obj = _lib.X509_EXTENSION_get_object(self._extension)
+        buf = _ffi.new("char[]", 80)
+        buf_length = _lib.OBJ_obj2txt(buf, len(buf), obj, 1)
+        if buf_length >= len(buf):
+            buf = _ffi.new("char[]", buf_length + 1)
+            _lib.OBJ_obj2txt(buf, len(buf), obj, 1)
+        return _ffi.string(buf)
 
 
 X509ExtensionType = X509Extension
