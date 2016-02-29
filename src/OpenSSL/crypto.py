@@ -297,8 +297,6 @@ class PKey(object):
             _raise_current_error()
         if not _lib.EVP_PKEY_derive_set_peer(ctx, peer._pkey):
             _raise_current_error()
-        if not _lib.EVP_PKEY_derive_init(ctx):
-            _raise_current_error()
         keylen = _ffi.new('size_t[]', 1)
         if not _lib.EVP_PKEY_derive(ctx, _ffi.NULL, keylen):
             _raise_current_error()
