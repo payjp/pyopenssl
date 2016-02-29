@@ -282,6 +282,24 @@ class PKey(object):
         :return: The number of bits of the key.
         """
         return _lib.EVP_PKEY_bits(self._pkey)
+
+    def get_dh(self):
+        """
+        Return the Diffie-Hellman parameter of the key.
+
+        :return: The Diffie-Hellman parameter of the key.
+        :rtype: :py:class:`DH`
+        """
+        dh = _lib.EVP_PKEY_get1_DH(self._pkey)
+        if dh == _ffi.NULL:
+            _raise_current_error()
+        dh = _ffi.gc(dh, _lib.DH_free)
+        result = DH.__new__(DH)
+        result._dh = dh
+        return result
+
+
+
 PKeyType = PKey
 
 
@@ -424,6 +442,267 @@ def get_elliptic_curve(name):
         if curve.name == name:
             return curve
     raise ValueError("unknown curve name", name)
+
+
+class BigNum(object):
+    """
+    A big number used in DH
+    """
+
+    @classmethod
+    def from_dec(cls, decrepr):
+        """
+        Construct a BigNum object from the specified decimal representation
+        of the number.
+
+        :param decrepr: The decimal representation of the number
+        :type decrepr: :py:class:`unicode`
+        :return: The BigNum object
+        :rtype: :py:class:`BigNum`
+        """
+        bignum_ptr = _ffi.new("BIGNUM**")
+        if not _lib.BN_dec2bn(bignum_ptr, decrepr):
+            _raise_current_error()
+        bignum = _ffi.gc(bignum_ptr[0], _lib.OPENSSL_free)
+        result = cls.__new__(cls)
+        result._bignum = bignum
+        return result
+
+    @classmethod
+    def from_hex(cls, hexrepr):
+        """
+        Construct a BigNum object from the specified hexadecimal representation
+        of the number.
+
+        :param hexrepr: The hexadecimal representation of the number
+        :type hexrepr: :py:class:`unicode`
+        :return: The BigNum object
+        :rtype: :py:class:`BigNum`
+        """
+        bignum_ptr = _ffi.new("BIGNUM**")
+        if not _lib.BN_hex2bn(bignum_ptr, hexrepr):
+            _raise_current_error()
+        bignum = _ffi.gc(bignum_ptr[0], _lib.OPENSSL_free)
+        result = cls.__new__(cls)
+        result._bignum = bignum
+        return result
+
+    @classmethod
+    def from_bin(cls, binrepr, bitlen):
+        """
+        Construct a BigNum object from the specified binary (big-endian)
+        representation of the number.
+
+        :param binrepr: The binary representation of the number (big-endian)
+        :type binrepr: :py:class:`unicode`
+        :param bitlen: The length of the binary in bits
+        :type bitlen: :py:type:`int`
+        :return: The BigNum object
+        :rtype: :py:class:`BigNum`
+        """
+        bignum_ptr = _ffi.new("BIGNUM**")
+        if not _lib.BN_bin2bn(bignum_ptr, binrepr, bitlen):
+            _raise_current_error()
+        bignum = _ffi.gc(bignum_ptr[0], _lib.OPENSSL_free)
+        result = cls.__new__(cls)
+        result._bignum = bignum
+        return result
+
+    @classmethod
+    def from_lebin(cls, binrepr, bitlen):
+        """
+        Construct a BigNum object from the specified binary (little-endian)
+        representation of the number.
+
+        :param binrepr: The binary representation of the number (little-endian)
+        :type binrepr: :py:class:`unicode`
+        :param bitlen: The length of the binary in bits
+        :type bitlen: :py:type:`int`
+        :return: The BigNum object
+        :rtype: :py:class:`BigNum`
+        """
+        bignum_ptr = _ffi.new("BIGNUM**")
+        if not _lib.BN_lebin2bn(bignum_ptr, binrepr, bitlen):
+            _raise_current_error()
+        bignum = _ffi.gc(bignum_ptr[0], _lib.OPENSSL_free)
+        result = cls.__new__(cls)
+        result._bignum = bignum
+        return result
+
+    def to_dec(self):
+        """
+        Convert a BigNum object into the decimal string representation.
+
+        :return: The decimal representation of the BigNum.
+        :rtype: :py:class:`unicode`
+        """
+        result = _lib.BN_bn2dec(self._bignum)
+        if result == _ffi.NULL:
+            _raise_current_error()
+        try:
+            return _ffi.string(result)
+        finally:
+            _lib.OPENSSL_free(result)
+
+    def to_hex(self):
+        """
+        Convert a BigNum object into the hexadecimal string representation.
+
+        :return: The hexadecimal representation of the BigNum.
+        :rtype: :py:class:`unicode`
+        """
+        result = _lib.BN_bn2hex(self._bignum)
+        if result == _ffi.NULL:
+            _raise_current_error()
+        try:
+            return _ffi.string(result)
+        finally:
+            _lib.OPENSSL_free(result)
+
+
+    def to_bin(self, bitlen=None):
+        """
+        Convert a BigNum object into the binary (big-endian) representation.
+
+        :param bitlen: (optional) The length of the resulting buffer in bits.
+                       If it is greater than that of the number, the space
+                       is padded with zeroes.  Specify None to make it default
+                       to the exact length.
+        :return: The tuple of the binary representation of the BigNum
+                 (big-endian) and its bit length.
+        :rtype: :py:class:`tuple`
+        """
+        buf = _ffi.new("unsigned char[]", _lib.BN_num_bytes(self._bignum))
+        if bitlen is not None:
+            out_bitlen = _lib.BN_bn2binpad(self._bignum, buf, bitlen)
+        else:
+            out_bitlen = _lib.BN_bn2bin(self._bignum, buf)
+        return (_ffi.buffer(buf), out_bitlen)
+
+    def to_lebin(self, bitlen=None):
+        """
+        Convert a BigNum object into the binary (little-endian) representation.
+
+        :param bitlen: (optional) The length of the resulting buffer in bits.
+                       If it is greater than that of the number, the space
+                       is padded with zeroes.  Specify None to make it default
+                       to the exact length.
+        :return: The tuple of the binary representation of the BigNum
+                 (little-endian) and its bit length.
+        :rtype: :py:class:`tuple`
+        """
+        buf = _ffi.new("unsigned char[]", _lib.BN_num_bytes(self._bignum))
+        if bitlen is not None:
+            out_bitlen = _lib.BN_bn2lebinpad(self._bignum, buf, bitlen)
+        else:
+            out_bitlen = _lib.BN_bn2lebin(self._bignum, buf)
+        return (_ffi.buffer(buf), out_bitlen)
+
+
+class DH(object):
+    """
+    Diffie-Hellman parameter
+    """
+    def __init__(self):
+        dh = _lib.DH_new()
+        dh = _ffi.gc(dh, _lib.DH_free)
+        self._dh = dh
+
+    # def duplicate(self):
+    #     """
+    #     Make a copy of the object with the same parameters
+    #     :return: The duplicated object
+    #     :rtype: :py:class:`DH`
+    #     """
+    #     dh = _lib.DHparams_dup(self._dh)
+    #     dh = _ffi.gc(dh, _lib.DH_free)
+    #     result = self.__class__.__new__(self.__class__)
+    #     result._dh = dh
+    #     return result
+
+    def check(self):
+        """
+        Check Diffie-Hellman parameters
+        :return: The check code
+        :rtype: :py:class:`int`
+        """
+        result = _ffi.new('int[]', 1)
+        result[0] = 0
+        if not _lib.DH_check(self._dh, result):
+            _raise_current_error()
+        return result[0]
+
+    def generate_parameters(self, prime_len, generator):
+        """
+        Generate Diffie-Hellman parameters using the given configuration
+        :param prime_len: The length of the prime in bits.
+        :param generator: A small number greater than 1, typically 2 or 5.
+        """
+        if not _lib.DH_generate_parameters_ex(self._dh, prime_len, generator, _ffi.NULL):
+            _raise_current_error()
+
+    def generate_key(self):
+        """
+        Generate a Diffie-Hellman key-pair using the parameters generated
+        by :py:meth:`generate_parameters`.
+        """
+        if not _lib.DH_generate_key(self._dh):
+            _raise_current_error()
+
+    def compute_key(self, pubkey):
+        """
+        Compute a shared secret using the parameters generated by
+        :py:meth:`generate_parameters`:.
+
+        :param pubkey: A big number that represents the other party's
+                       public key
+        :type pubkey: :py:class:`BigNum`
+        """
+        dh_size = _lib.DH_size(self._dh)
+        secret = _ffi.new("char[]", dh_size)
+        if not _lib.DH_compute_key(secret, pubkey._bignum, self._dh):
+            _raise_current_error()
+        return _ffi.buffer(secret)
+
+    def get_prime(self):
+        """
+        Returns the prime number
+        """
+        if self._dh.p == _ffi.NULL:
+            return None
+        result = BigNum.__new__(BigNum)
+        result._bignum = self._dh.p # XXX: GC-unsafe
+        return result
+
+    def get_generator(self):
+        """
+        Returns the generator of Zp
+        """
+        if self._dh.g == _ffi.NULL:
+            return None
+        result = BigNum.__new__(BigNum)
+        result._bignum = self._dh.g # XXX: GC-unsafe
+        return result
+
+    def get_private_key(self):
+        """
+        Returns the generator of Zp
+        """
+        if self._dh.priv_key == _ffi.NULL:
+            return None
+        result = BigNum.__new__(BigNum)
+        result._bignum = self._dh.priv_key # XXX: GC-unsafe
+        return result
+
+    def get_public_key(self):
+        """
+        Returns the generator of Zp
+        """
+        if self._dh.pub_key == _ffi.NULL:
+            return None
+        result = BigNum.__new__(BigNum)
+        result._bignum = self._dh.pub_key # XXX: GC-unsafe
+        return result
 
 
 class X509Name(object):
