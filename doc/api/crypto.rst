@@ -73,14 +73,7 @@ Certificate signing requests
 Private keys
 ~~~~~~~~~~~~
 
-.. py:function:: dump_privatekey(type, pkey[, cipher, passphrase])
-
-    Dump the private key *pkey* into a buffer string encoded with the type
-    *type*, optionally (if *type* is :py:const:`FILETYPE_PEM`) encrypting it
-    using *cipher* and *passphrase*.
-
-    *passphrase* must be either a string or a callback for providing the
-    pass phrase.
+.. autofunction:: dump_privatekey
 
 .. py:function:: load_privatekey(type, buffer[, passphrase])
 
@@ -206,6 +199,25 @@ X509StoreContext objects
 
 .. _openssl-pkey:
 
+X509StoreFlags constants
+------------------------
+
+.. autoclass:: X509StoreFlags
+
+    .. data:: CRL_CHECK
+    .. data:: CRL_CHECK_ALL
+    .. data:: IGNORE_CRITICAL
+    .. data:: X509_STRICT
+    .. data:: ALLOW_PROXY_CERTS
+    .. data:: POLICY_CHECK
+    .. data:: EXPLICIT_POLICY
+    .. data:: INHIBIT_MAP
+    .. data:: NOTIFY_POLICY
+    .. data:: CHECK_SS_SIGNATURE
+    .. data:: CB_ISSUER_CHECK
+
+.. _openssl-x509storeflags:
+
 PKey objects
 ------------
 
@@ -278,49 +290,45 @@ Exceptions
 
     Generic exception used in the :py:mod:`.crypto` module.
 
+
 Digest names
 ------------
 
-Several of the functions and methods in this module take a digest
-name. These must be strings describing a digest algorithm supported by
-OpenSSL (by ``EVP_get_digestbyname``, specifically). For example,
-:py:const:`b"md5"` or :py:const:`b"sha1"`.
+Several of the functions and methods in this module take a digest name.
+These must be strings describing a digest algorithm supported by OpenSSL (by ``EVP_get_digestbyname``, specifically).
+For example, :const:`b"md5"` or :const:`b"sha1"`.
 
-More information and a list of these digest names can be found in the
-``EVP_DigestInit(3)`` man page of your OpenSSL installation. This page
-can be found online for the latest version of OpenSSL:
-https://www.openssl.org/docs/crypto/EVP_DigestInit.html
+More information and a list of these digest names can be found in the ``EVP_DigestInit(3)`` man page of your OpenSSL installation.
+This page can be found online for the latest version of OpenSSL:
+https://www.openssl.org/docs/manmaster/crypto/EVP_DigestInit.html
+
 
 Backwards compatible type names
 -------------------------------
 
-When PyOpenSSL was originally written, the most current version of
-Python was 2.1. It made a distinction between classes and types. None
-of the versions of Python currently supported by PyOpenSSL still
-enforce that distinction: the type of an instance of an
-:py:class:`X509` object is now simply :py:class:`X509`. Originally,
-the type would have been :py:class:`X509Type`. These days,
-:py:class:`X509Type` and :py:class:`X509` are literally the same
-object. PyOpenSSL maintains these old names for backwards
-compatibility.
+When pyOpenSSL was originally written, the most current version of Python was 2.1.
+It made a distinction between classes and types.
+None of the versions of Python currently supported by pyOpenSSL still enforce that distinction:
+the type of an instance of an :class:`X509` object is now simply :class:`X509`.
+Originally, the type would have been :class:`X509Type`.
+These days, :class:`X509Type` and :class:`X509` are literally the same object.
+pyOpenSSL maintains these old names for backwards compatibility.
 
 Here's a table of these backwards-compatible names:
 
-=========================  =============================
-Type name                  Backwards-compatible name
-=========================  =============================
-:py:class:`X509`           :py:class:`X509Type`
-:py:class:`X509Name`       :py:class:`X509NameType`
-:py:class:`X509Req`        :py:class:`X509ReqType`
-:py:class:`X509Store`      :py:class:`X509StoreType`
-:py:class:`X509Extension`  :py:class:`X509ExtensionType`
-:py:class:`PKey`           :py:class:`PKeyType`
-:py:class:`PKCS7`          :py:class:`PKCS7Type`
-:py:class:`PKCS12`         :py:class:`PKCS12Type`
-:py:class:`NetscapeSPKI`   :py:class:`NetscapeSPKIType`
-:py:class:`CRL`            :py:class:`CRLType`
-=========================  =============================
+======================  ==========================
+Type name               Backwards-compatible name
+======================  ==========================
+:class:`X509`           :class:`X509Type`
+:class:`X509Name`       :class:`X509NameType`
+:class:`X509Req`        :class:`X509ReqType`
+:class:`X509Store`      :class:`X509StoreType`
+:class:`X509Extension`  :class:`X509ExtensionType`
+:class:`PKey`           :class:`PKeyType`
+:class:`PKCS7`          :class:`PKCS7Type`
+:class:`PKCS12`         :class:`PKCS12Type`
+:class:`NetscapeSPKI`   :class:`NetscapeSPKIType`
+:class:`CRL`            :class:`CRLType`
+======================  ==========================
 
-Some objects, such as :py:class`Revoked`, don't have ``Type``
-equivalents, because they were added after the restriction had been
-lifted.
+Some objects, such as :class:`Revoked`, don't have ``Type`` equivalents, because they were added after the restriction had been lifted.

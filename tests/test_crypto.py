@@ -18,10 +18,18 @@ import pytest
 
 from six import u, b, binary_type
 
+from cryptography.hazmat.backends.openssl.backend import backend
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+
 from OpenSSL.crypto import TYPE_RSA, TYPE_DSA, Error, PKey, PKeyType
 from OpenSSL.crypto import X509, X509Type, X509Name, X509NameType
 from OpenSSL.crypto import (
-    X509Store, X509StoreType, X509StoreContext, X509StoreContextError
+    X509Store,
+    X509StoreFlags,
+    X509StoreType,
+    X509StoreContext,
+    X509StoreContextError
 )
 from OpenSSL.crypto import X509Req, X509ReqType
 from OpenSSL.crypto import X509Extension, X509ExtensionType
@@ -461,6 +469,45 @@ vrzEeLDRiiPl92dyyWmu
 -----END X509 CRL-----
 """)
 
+crlDataUnsupportedExtension = b("""\
+-----BEGIN X509 CRL-----
+MIIGRzCCBS8CAQIwDQYJKoZIhvcNAQELBQAwJzELMAkGA1UEBhMCVVMxGDAWBgNV
+BAMMD2NyeXB0b2dyYXBoeS5pbxgPMjAxNTAxMDEwMDAwMDBaGA8yMDE2MDEwMTAw
+MDAwMFowggTOMBQCAQAYDzIwMTUwMTAxMDAwMDAwWjByAgEBGA8yMDE1MDEwMTAw
+MDAwMFowXDAYBgNVHRgEERgPMjAxNTAxMDEwMDAwMDBaMDQGA1UdHQQtMCukKTAn
+MQswCQYDVQQGEwJVUzEYMBYGA1UEAwwPY3J5cHRvZ3JhcGh5LmlvMAoGA1UdFQQD
+CgEAMHICAQIYDzIwMTUwMTAxMDAwMDAwWjBcMBgGA1UdGAQRGA8yMDE1MDEwMTAw
+MDAwMFowNAYDVR0dBC0wK6QpMCcxCzAJBgNVBAYTAlVTMRgwFgYDVQQDDA9jcnlw
+dG9ncmFwaHkuaW8wCgYDVR0VBAMKAQEwcgIBAxgPMjAxNTAxMDEwMDAwMDBaMFww
+GAYDVR0YBBEYDzIwMTUwMTAxMDAwMDAwWjA0BgNVHR0ELTArpCkwJzELMAkGA1UE
+BhMCVVMxGDAWBgNVBAMMD2NyeXB0b2dyYXBoeS5pbzAKBgNVHRUEAwoBAjByAgEE
+GA8yMDE1MDEwMTAwMDAwMFowXDAYBgNVHRgEERgPMjAxNTAxMDEwMDAwMDBaMDQG
+A1UdHQQtMCukKTAnMQswCQYDVQQGEwJVUzEYMBYGA1UEAwwPY3J5cHRvZ3JhcGh5
+LmlvMAoGA1UdFQQDCgEDMHICAQUYDzIwMTUwMTAxMDAwMDAwWjBcMBgGA1UdGAQR
+GA8yMDE1MDEwMTAwMDAwMFowNAYDVR0dBC0wK6QpMCcxCzAJBgNVBAYTAlVTMRgw
+FgYDVQQDDA9jcnlwdG9ncmFwaHkuaW8wCgYDVR0VBAMKAQQwcgIBBhgPMjAxNTAx
+MDEwMDAwMDBaMFwwGAYDVR0YBBEYDzIwMTUwMTAxMDAwMDAwWjA0BgNVHR0ELTAr
+pCkwJzELMAkGA1UEBhMCVVMxGDAWBgNVBAMMD2NyeXB0b2dyYXBoeS5pbzAKBgNV
+HRUEAwoBBTByAgEHGA8yMDE1MDEwMTAwMDAwMFowXDAYBgNVHRgEERgPMjAxNTAx
+MDEwMDAwMDBaMDQGA1UdHQQtMCukKTAnMQswCQYDVQQGEwJVUzEYMBYGA1UEAwwP
+Y3J5cHRvZ3JhcGh5LmlvMAoGA1UdFQQDCgEGMHICAQgYDzIwMTUwMTAxMDAwMDAw
+WjBcMBgGA1UdGAQRGA8yMDE1MDEwMTAwMDAwMFowNAYDVR0dBC0wK6QpMCcxCzAJ
+BgNVBAYTAlVTMRgwFgYDVQQDDA9jcnlwdG9ncmFwaHkuaW8wCgYDVR0VBAMKAQgw
+cgIBCRgPMjAxNTAxMDEwMDAwMDBaMFwwGAYDVR0YBBEYDzIwMTUwMTAxMDAwMDAw
+WjA0BgNVHR0ELTArpCkwJzELMAkGA1UEBhMCVVMxGDAWBgNVBAMMD2NyeXB0b2dy
+YXBoeS5pbzAKBgNVHRUEAwoBCTByAgEKGA8yMDE1MDEwMTAwMDAwMFowXDAYBgNV
+HRgEERgPMjAxNTAxMDEwMDAwMDBaMDQGA1UdHQQtMCukKTAnMQswCQYDVQQGEwJV
+UzEYMBYGA1UEAwwPY3J5cHRvZ3JhcGh5LmlvMAoGA1UdFQQDCgEKMC4CAQsYDzIw
+MTUwMTAxMDAwMDAwWjAYMAoGA1UdFQQDCgEBMAoGAyoDBAQDCgEAMA0GCSqGSIb3
+DQEBCwUAA4IBAQBTaloHlPaCZzYee8LxkWej5meiqxQVNWFoVdjesroa+f1FRrH+
+drRU60Nq97KCKf7f9GNN/J3ZIlQmYhmuDqh12f+XLpotoj1ZRfBz2hjFCkJlv+2c
+oWWGNHgA70ndFoVtcmX088SYpX8E3ARATivS4q2h9WlwV6rO93mhg3HGIe3JpcK4
+7BcW6Poi/ut/zsDOkVbI00SqaujRpdmdCTht82MH3ztjyDkI9KYaD/YEweKSrWOz
+SdEILd164bfBeLuplVI+xpmTEMVNpXBlSXl7+xIw9Vk7p7Q1Pa3k/SvhOldYCm6y
+C1xAg/AAq6w78yzYt18j5Mj0s6eeHi1YpHKw
+-----END X509 CRL-----
+""")
+
 
 # A broken RSA private key which can be used to test the error path through
 # PKey.check.
@@ -505,6 +552,67 @@ kX4LxlEx5RAvpGB2zZVRGr6LobD9rVK91xuHYNIxxxfEGE8tCCWjp0+3ksri9SXx
 VHWBnbM9YaL32u3hxm8sYB/Yb8WSBavJCWJJqRStVRHM1koZlJmXNx2BX4vPo6iW
 RFEIPQsFZRLrtnCAiEhyT8bC2s/Njlu6ly9gtJZWSV46Q3ZjBL4q9sHKqZQ=
 -----END CERTIFICATE-----""")
+
+large_key_pem = b("""-----BEGIN RSA PRIVATE KEY-----
+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
+vYeU7Ab/
+-----END RSA PRIVATE KEY-----""")
+
+ec_private_key_pem = b"""-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgYirTZSx+5O8Y6tlG
+cka6W6btJiocdrdolfcukSoTEk+hRANCAAQkvPNu7Pa1GcsWU4v7ptNfqCJVq8Cx
+zo0MUVPQgwJ3aJtNM1QMOQUayCrRwfklg+D/rFSUwEUqtZh7fJDiFqz3
+-----END PRIVATE KEY-----
+"""
 
 
 pkcs7SignerCertificatePEM = b("""-----BEGIN CERTIFICATE-----
@@ -913,6 +1021,70 @@ class X509ExtTests(TestCase):
                 issuer=badObj)
 
 
+class TestPKey(object):
+    """
+    py.test-based tests for :class:`OpenSSL.crypto.PKey`.
+
+    If possible, add new tests here.
+    """
+
+    def test_convert_from_cryptography_private_key(self):
+        """
+        PKey.from_cryptography_key creates a proper private PKey.
+        """
+        key = serialization.load_pem_private_key(
+            intermediate_key_pem, None, backend
+        )
+        pkey = PKey.from_cryptography_key(key)
+
+        assert isinstance(pkey, PKey)
+        assert pkey.bits() == key.key_size
+        assert pkey._only_public is False
+        assert pkey._initialized is True
+
+    def test_convert_from_cryptography_public_key(self):
+        """
+        PKey.from_cryptography_key creates a proper public PKey.
+        """
+        key = serialization.load_pem_public_key(cleartextPublicKeyPEM, backend)
+        pkey = PKey.from_cryptography_key(key)
+
+        assert isinstance(pkey, PKey)
+        assert pkey.bits() == key.key_size
+        assert pkey._only_public is True
+        assert pkey._initialized is True
+
+    def test_convert_from_cryptography_unsupported_type(self):
+        """
+        PKey.from_cryptography_key raises TypeError with an unsupported type.
+        """
+        key = serialization.load_pem_private_key(
+            ec_private_key_pem, None, backend
+        )
+        with pytest.raises(TypeError):
+            PKey.from_cryptography_key(key)
+
+    def test_convert_public_pkey_to_cryptography_key(self):
+        """
+        PKey.to_cryptography_key creates a proper cryptography public key.
+        """
+        pkey = load_publickey(FILETYPE_PEM, cleartextPublicKeyPEM)
+        key = pkey.to_cryptography_key()
+
+        assert isinstance(key, rsa.RSAPublicKey)
+        assert pkey.bits() == key.key_size
+
+    def test_convert_private_pkey_to_cryptography_key(self):
+        """
+        PKey.to_cryptography_key creates a proper cryptography private key.
+        """
+        pkey = load_privatekey(FILETYPE_PEM, cleartextPrivateKeyPEM)
+        key = pkey.to_cryptography_key()
+
+        assert isinstance(key, rsa.RSAPrivateKey)
+        assert pkey.bits() == key.key_size
+
+
 class PKeyTests(TestCase):
     """
     Unit tests for :py:class:`OpenSSL.crypto.PKey`.
@@ -965,6 +1137,9 @@ class PKeyTests(TestCase):
 
         self.assertRaises(ValueError, key.generate_key, TYPE_RSA, -1)
         self.assertRaises(ValueError, key.generate_key, TYPE_RSA, 0)
+
+        with pytest.raises(TypeError):
+            key.generate_key(TYPE_RSA, object())
 
         # XXX RSA generation for small values of bits is fairly buggy in a wide
         # range of OpenSSL versions.  I need to figure out what the safe lower
@@ -1120,17 +1295,25 @@ class X509NameTests(TestCase):
         """
         name = self._x509name()
         name.commonName = "foo"
-        self.assertEqual(name.commonName, "foo")
-        self.assertEqual(name.CN, "foo")
+        assert name.commonName == "foo"
+        assert name.CN == "foo"
+
         name.CN = "baz"
-        self.assertEqual(name.commonName, "baz")
-        self.assertEqual(name.CN, "baz")
+        assert name.commonName == "baz"
+        assert name.CN == "baz"
+
         name.commonName = "bar"
-        self.assertEqual(name.commonName, "bar")
-        self.assertEqual(name.CN, "bar")
+        assert name.commonName == "bar"
+        assert name.CN == "bar"
+
         name.CN = "quux"
-        self.assertEqual(name.commonName, "quux")
-        self.assertEqual(name.CN, "quux")
+        assert name.commonName == "quux"
+        assert name.CN == "quux"
+
+        assert name.OU is None
+
+        with pytest.raises(AttributeError):
+            name.foobar
 
     def test_copy(self):
         """
@@ -1208,6 +1391,8 @@ class X509NameTests(TestCase):
         # Instances with different NIDs should not compare equal to each other.
         assertNotEqual(self._x509name(CN="foo"),
                        self._x509name(OU="foo"))
+
+        assertNotEqual(self._x509name(), object())
 
         def _inequality(a, b, assertTrue, assertFalse):
             assertTrue(a < b)
@@ -2009,6 +2194,15 @@ WpOdIpB8KksUTCzV591Nr1wd
         cert = X509()
         self.assertRaises(Error, cert.get_pubkey)
 
+    def test_set_pubkey_wrong_type(self):
+        """
+        :obj:`X509.set_pubkey` raises :obj:`TypeError` when given an object of
+        the wrong type.
+        """
+        cert = X509()
+        with pytest.raises(TypeError):
+            cert.set_pubkey(object())
+
     def test_subject_name_hash_wrong_args(self):
         """
         :py:obj:`X509.subject_name_hash` raises :py:obj:`TypeError` if called
@@ -2068,6 +2262,15 @@ tgI5
 """)
         cert = load_certificate(FILETYPE_PEM, certPEM)
         self.assertRaises(ValueError, cert.get_signature_algorithm)
+
+    def test_sign_bad_pubkey_type(self):
+        """
+        :obj:`X509.sign` raises :obj:`TypeError` when called with the wrong
+        type.
+        """
+        cert = X509()
+        with pytest.raises(TypeError):
+            cert.sign(object(), b"sha256")
 
 
 class X509StoreTests(TestCase):
@@ -2595,9 +2798,50 @@ def _runopenssl(pem, *args):
     return output
 
 
+class TestLoadPublicKey(object):
+    """
+    Tests for :func:`load_publickey`.
+    """
+    def test_loading_works(self):
+        """
+        load_publickey loads public keys and sets correct attributes.
+        """
+        key = load_publickey(FILETYPE_PEM, cleartextPublicKeyPEM)
+
+        assert True is key._only_public
+        assert 2048 == key.bits()
+        assert TYPE_RSA == key.type()
+
+    def test_invalid_type(self):
+        """
+        load_publickey doesn't support FILETYPE_TEXT.
+        """
+        with pytest.raises(ValueError):
+            load_publickey(FILETYPE_TEXT, cleartextPublicKeyPEM)
+
+    def test_invalid_key_format(self):
+        """
+        load_publickey explodes on incorrect keys.
+        """
+        with pytest.raises(Error):
+            load_publickey(FILETYPE_ASN1, cleartextPublicKeyPEM)
+
+    def test_tolerates_unicode_strings(self):
+        """
+        load_publickey works with text strings, not just bytes.
+        """
+        serialized = cleartextPublicKeyPEM.decode('ascii')
+        key = load_publickey(FILETYPE_PEM, serialized)
+        dumped_pem = dump_publickey(FILETYPE_PEM, key)
+
+        assert dumped_pem == cleartextPublicKeyPEM
+
+
 class FunctionTests(TestCase):
     """
     Tests for free-functions in the :py:obj:`OpenSSL.crypto` module.
+
+    Add new tests to `TestFunctions` above.
     """
 
     def test_load_privatekey_invalid_format(self):
@@ -2801,6 +3045,15 @@ class FunctionTests(TestCase):
         good_text = _runopenssl(dumped_pem, b"x509", b"-noout", b"-text")
         self.assertEqual(dumped_text, good_text)
 
+    def test_dump_certificate_bad_type(self):
+        """
+        :obj:`dump_certificate` raises a :obj:`ValueError` if it's called with
+        a bad type.
+        """
+        cert = load_certificate(FILETYPE_PEM, cleartextCertificatePEM)
+        with pytest.raises(ValueError):
+            dump_certificate(object(), cert)
+
     def test_dump_privatekey_pem(self):
         """
         :py:obj:`dump_privatekey` writes a PEM
@@ -2862,29 +3115,6 @@ class FunctionTests(TestCase):
 
         with pytest.raises(ValueError):
             dump_publickey(FILETYPE_TEXT, key)
-
-    def test_load_publickey_invalid_type(self):
-        """
-        load_publickey doesn't support FILETYPE_TEXT.
-        """
-        with pytest.raises(ValueError):
-            load_publickey(FILETYPE_TEXT, cleartextPublicKeyPEM)
-
-    def test_load_publickey_invalid_key_format(self):
-        """
-        load_publickey explodes on incorrect keys.
-        """
-        with pytest.raises(Error):
-            load_publickey(FILETYPE_ASN1, cleartextPublicKeyPEM)
-
-    def test_load_publickey_tolerates_unicode_strings(self):
-        """
-        load_publickey works with text strings, not just bytes.
-        """
-        serialized = cleartextPublicKeyPEM.decode('ascii')
-        key = load_publickey(FILETYPE_PEM, serialized)
-        dumped_pem = dump_publickey(FILETYPE_PEM, key)
-        assert dumped_pem == cleartextPublicKeyPEM
 
     def test_dump_certificate_request(self):
         """
@@ -2982,6 +3212,14 @@ class FunctionTests(TestCase):
         with pytest.raises(Error):
             load_pkcs7_data(FILETYPE_PEM, "foo")
 
+    def test_load_pkcs7_type_invalid(self):
+        """
+        If the type passed to :obj:`load_pkcs7_data`, :obj:`ValueError` is
+        raised.
+        """
+        with pytest.raises(ValueError):
+            load_pkcs7_data(object(), b"foo")
+
 
 class LoadCertificateTests(TestCase):
     """
@@ -2994,7 +3232,18 @@ class LoadCertificateTests(TestCase):
         neither :py:obj:`FILETYPE_PEM` nor :py:obj:`FILETYPE_ASN1` then
         :py:class:`ValueError` is raised.
         """
-        self.assertRaises(ValueError, load_certificate_request, object(), b"")
+        with pytest.raises(ValueError):
+            load_certificate_request(object(), b"")
+        with pytest.raises(ValueError):
+            load_certificate(object(), b"")
+
+    def test_bad_certificate(self):
+        """
+        If the bytes passed to :obj:`load_certificate` are not a valid
+        certificate, an exception is raised.
+        """
+        with pytest.raises(Error):
+            load_certificate(FILETYPE_ASN1, b"lol")
 
 
 class PKCS7Tests(TestCase):
@@ -3313,9 +3562,34 @@ class NetscapeSPKITests(TestCase, _PKeyInteractionTestsMixin):
         self.assertTrue(isinstance(blob, binary_type))
 
 
+class TestRevoked(object):
+    """
+    Please add test cases for the Revoked class here if possible. This class
+    holds the new py.test style tests.
+    """
+    def test_ignores_unsupported_revoked_cert_extension_get_reason(self):
+        """
+        The get_reason method on the Revoked class checks to see if the
+        extension is NID_crl_reason and should skip it otherwise. This test
+        loads a CRL with extensions it should ignore.
+        """
+        crl = load_crl(FILETYPE_PEM, crlDataUnsupportedExtension)
+        revoked = crl.get_revoked()
+        reason = revoked[1].get_reason()
+        assert reason == b'Unspecified'
+
+    def test_ignores_unsupported_revoked_cert_extension_set_new_reason(self):
+        crl = load_crl(FILETYPE_PEM, crlDataUnsupportedExtension)
+        revoked = crl.get_revoked()
+        revoked[1].set_reason(None)
+        reason = revoked[1].get_reason()
+        assert reason is None
+
+
 class RevokedTests(TestCase):
     """
-    Tests for :py:obj:`OpenSSL.crypto.Revoked`
+    Tests for :py:obj:`OpenSSL.crypto.Revoked`. Please add test cases to
+    TestRevoked above if possible.
     """
 
     def test_construction(self):
@@ -3424,6 +3698,15 @@ class CRLTests(TestCase):
     """
     cert = load_certificate(FILETYPE_PEM, cleartextCertificatePEM)
     pkey = load_privatekey(FILETYPE_PEM, cleartextPrivateKeyPEM)
+
+    root_cert = load_certificate(FILETYPE_PEM, root_cert_pem)
+    root_key = load_privatekey(FILETYPE_PEM, root_key_pem)
+    intermediate_cert = load_certificate(FILETYPE_PEM, intermediate_cert_pem)
+    intermediate_key = load_privatekey(FILETYPE_PEM, intermediate_key_pem)
+    intermediate_server_cert = load_certificate(
+        FILETYPE_PEM, intermediate_server_cert_pem)
+    intermediate_server_key = load_privatekey(
+        FILETYPE_PEM, intermediate_server_key_pem)
 
     def test_construction(self):
         """
@@ -3566,6 +3849,8 @@ class CRLTests(TestCase):
         """
         crl = CRL()
         revoked = Revoked()
+        revoked.set_serial(b"01")
+        revoked.set_rev_date(b"20160310020145Z")
         crl.add_revoked(revoked=revoked)
         self.assertTrue(isinstance(crl.get_revoked()[0], Revoked))
 
@@ -3703,6 +3988,15 @@ class CRLTests(TestCase):
         """
         self.assertRaises(Error, load_crl, FILETYPE_PEM, b"hello, world")
 
+    def test_get_issuer(self):
+        """
+        Load a known CRL and assert its issuer's common name is
+        what we expect from the encoded crlData string.
+        """
+        crl = load_crl(FILETYPE_PEM, crlData)
+        self.assertTrue(isinstance(crl.get_issuer(), X509Name))
+        self.assertEqual(crl.get_issuer().CN, 'Testing Root CA')
+
     def test_dump_crl(self):
         """
         The dumped CRL matches the original input.
@@ -3710,6 +4004,71 @@ class CRLTests(TestCase):
         crl = load_crl(FILETYPE_PEM, crlData)
         buf = dump_crl(FILETYPE_PEM, crl)
         assert buf == crlData
+
+    def _make_test_crl(self, issuer_cert, issuer_key, certs=()):
+        """
+        Create a CRL.
+
+        :param list[X509] certs: A list of certificates to revoke.
+        :rtype: CRL
+        """
+        crl = CRL()
+        for cert in certs:
+            revoked = Revoked()
+            # FIXME: This string splicing is an unfortunate implementation
+            # detail that has been reported in
+            # https://github.com/pyca/pyopenssl/issues/258
+            serial = hex(cert.get_serial_number())[2:].encode('utf-8')
+            revoked.set_serial(serial)
+            revoked.set_reason(b'unspecified')
+            revoked.set_rev_date(b'20140601000000Z')
+            crl.add_revoked(revoked)
+        crl.set_version(1)
+        crl.set_lastUpdate(b'20140601000000Z')
+        crl.set_nextUpdate(b'20180601000000Z')
+        crl.sign(issuer_cert, issuer_key, digest=b'sha512')
+        return crl
+
+    def test_verify_with_revoked(self):
+        """
+        :func:`verify_certificate` raises error when an intermediate
+        certificate is revoked.
+        """
+        store = X509Store()
+        store.add_cert(self.root_cert)
+        store.add_cert(self.intermediate_cert)
+        root_crl = self._make_test_crl(
+            self.root_cert, self.root_key, certs=[self.intermediate_cert])
+        intermediate_crl = self._make_test_crl(
+            self.intermediate_cert, self.intermediate_key, certs=[])
+        store.add_crl(root_crl)
+        store.add_crl(intermediate_crl)
+        store.set_flags(
+            X509StoreFlags.CRL_CHECK | X509StoreFlags.CRL_CHECK_ALL)
+        store_ctx = X509StoreContext(store, self.intermediate_server_cert)
+        e = self.assertRaises(
+            X509StoreContextError, store_ctx.verify_certificate)
+        self.assertEqual(e.args[0][2], 'certificate revoked')
+
+    def test_verify_with_missing_crl(self):
+        """
+        :func:`verify_certificate` raises error when an intermediate
+        certificate's CRL is missing.
+        """
+        store = X509Store()
+        store.add_cert(self.root_cert)
+        store.add_cert(self.intermediate_cert)
+        root_crl = self._make_test_crl(
+            self.root_cert, self.root_key, certs=[self.intermediate_cert])
+        store.add_crl(root_crl)
+        store.set_flags(
+            X509StoreFlags.CRL_CHECK | X509StoreFlags.CRL_CHECK_ALL)
+        store_ctx = X509StoreContext(store, self.intermediate_server_cert)
+        e = self.assertRaises(
+            X509StoreContextError, store_ctx.verify_certificate)
+        self.assertEqual(e.args[0][2], 'unable to get certificate CRL')
+        self.assertEqual(
+            e.certificate.get_subject().CN, 'intermediate-service')
 
 
 class X509StoreContextTests(TestCase):
@@ -3917,6 +4276,20 @@ class SignVerifyTests(TestCase):
         good_cert = load_certificate(FILETYPE_PEM, root_cert_pem)
         sig = sign(priv_key, content, "sha1")
         verify(good_cert, sig, content, "sha1")
+
+    def test_sign_with_large_key(self):
+        """
+        :py:obj:`sign` produces a signature for a string when using a long key.
+        """
+        content = b(
+            "It was a bright cold day in April, and the clocks were striking "
+            "thirteen. Winston Smith, his chin nuzzled into his breast in an "
+            "effort to escape the vile wind, slipped quickly through the "
+            "glass doors of Victory Mansions, though not quickly enough to "
+            "prevent a swirl of gritty dust from entering along with him.")
+
+        priv_key = load_privatekey(FILETYPE_PEM, large_key_pem)
+        sign(priv_key, content, "sha1")
 
 
 class EllipticCurveTests(TestCase):
