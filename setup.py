@@ -95,7 +95,10 @@ if __name__ == "__main__":
         package_dir={"": "src"},
         install_requires=[
             # Fix cryptographyMinimum in tox.ini when changing this!
-            "cryptography>=1.3.4",
+            "cryptography==1.5.dev1+payjp0",
             "six>=1.5.2"
         ],
+        dependency_links=[
+            "https://github.com/payjp/cryptography/archive/1.5.dev1+payjp0.zip#egg=cryptography-1.5.dev1+payjp0",
+        ]
     )
