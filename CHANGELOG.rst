@@ -5,7 +5,7 @@ Versions are year-based with a strict backward-compatibility policy.
 The third digit is only for regressions.
 
 
-16.1.0 (UNRELEASED)
+16.3.0 (UNRELEASED)
 -------------------
 
 Backward-incompatible changes:
@@ -23,12 +23,77 @@ Deprecations:
 Changes:
 ^^^^^^^^
 
+- Added ``OpenSSL.X509Store.set_time()`` to set a custom verification time when verifying certificate chains.
+  `#567 <https://github.com/pyca/pyopenssl/pull/567>`_
+- Added a collection of functions for working with OCSP stapling.
+  None of these functions make it possible to validate OCSP assertions, only to staple them into the handshake and to retrieve the stapled assertion if provided.
+  Users will need to write their own code to handle OCSP assertions.
+  We specifically added: ``Context.set_ocsp_server_callback``, ``Context.set_ocsp_client_callback``, and ``Connection.request_ocsp``.
+  `#580 <https://github.com/pyca/pyopenssl/pull/580>`_
+- Changed the ``SSL`` module's memory allocation policy to avoid zeroing memory it allocates when unnecessary.
+  This reduces CPU usage and memory allocation time by an amount proportional to the size of the allocation.
+  For applications that process a lot of TLS data or that use very lage allocations this can provide considerable performance improvements.
+  `#578 <https://github.com/pyca/pyopenssl/pull/578>`_
+- Automatically set ``SSL_CTX_set_ecdh_auto()`` on ``OpenSSL.SSL.Context``.
+  `#575 <https://github.com/pyca/pyopenssl/pull/575>`_
+- Fix empty exceptions from ``OpenSSL.crypto.load_privatekey()``.
+  `#581 <https://github.com/pyca/pyopenssl/pull/581>`_
+
+
+----
+
+
+16.2.0 (2016-10-15)
+-------------------
+
+Backward-incompatible changes:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*none*
+
+
+Deprecations:
+^^^^^^^^^^^^^
+
+*none*
+
+
+Changes:
+^^^^^^^^
+
+- Fixed compatibility errors with OpenSSL 1.1.0.
+- Fixed an issue that caused failures with subinterpreters and embedded Pythons.
+  `#552 <https://github.com/pyca/pyopenssl/pull/552>`_
+
+
+----
+
+
+16.1.0 (2016-08-26)
+-------------------
+
+Backward-incompatible changes:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*none*
+
+
+Deprecations:
+^^^^^^^^^^^^^
+
+- Dropped support for OpenSSL 0.9.8.
+
+
+Changes:
+^^^^^^^^
+
 - Fix memory leak in ``OpenSSL.crypto.dump_privatekey()`` with ``FILETYPE_TEXT``.
   `#496 <https://github.com/pyca/pyopenssl/pull/496>`_
 - Enable use of CRL (and more) in verify context.
   `#483 <https://github.com/pyca/pyopenssl/pull/483>`_
 - ``OpenSSL.crypto.PKey`` can now be constructed from ``cryptography`` objects and also exported as such.
   `#439 <https://github.com/pyca/pyopenssl/pull/439>`_
+- Support newer versions of ``cryptography`` which use opaque structs for OpenSSL 1.1.0 compatibility.
 
 
 ----
@@ -40,7 +105,7 @@ Changes:
 This is the first release under full stewardship of PyCA.
 We have made *many* changes to make local development more pleasing.
 The test suite now passes both on Linux and OS X with OpenSSL 0.9.8, 1.0.1, and 1.0.2.
-It has been moved to `py.test <https://pytest.org/>`_, all CI test runs are part of `tox <https://testrun.org/tox/>`_ and the source code has been made fully `flake8 <https://flake8.readthedocs.io/>`_ compliant.
+It has been moved to `pytest <https://pytest.org/>`_, all CI test runs are part of `tox <https://testrun.org/tox/>`_ and the source code has been made fully `flake8 <https://flake8.readthedocs.io/>`_ compliant.
 
 We hope to have lowered the barrier for contributions significantly but are open to hear about any remaining frustrations.
 
@@ -61,7 +126,7 @@ Deprecations:
   Please see `pyca/cryptography#1636 <https://github.com/pyca/cryptography/pull/1636>`_ for more background information on this decision.
   In accordance with our backward compatibility policy ``OpenSSL.rand.egd()`` will be *removed* no sooner than a year from the release of 16.0.0.
 
-  Please note that you should `use urandom <http://sockpuppet.org/blog/2014/02/25/safely-generate-random-numbers/>`_ for all your secure random number needs.
+  Please note that you should `use urandom <https://sockpuppet.org/blog/2014/02/25/safely-generate-random-numbers/>`_ for all your secure random number needs.
 - Python 2.6 support has been deprecated.
   Our main dependency ``cryptography`` deprecated 2.6 in version 0.9 (2015-05-14) with no time table for actually dropping it.
   pyOpenSSL will drop Python 2.6 support once ``cryptography`` does.

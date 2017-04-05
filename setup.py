@@ -83,6 +83,7 @@ if __name__ == "__main__":
             'Programming Language :: Python :: 3.3',
             'Programming Language :: Python :: 3.4',
             'Programming Language :: Python :: 3.5',
+            'Programming Language :: Python :: 3.6',
 
             'Programming Language :: Python :: Implementation :: CPython',
             'Programming Language :: Python :: Implementation :: PyPy',
@@ -95,7 +96,7 @@ if __name__ == "__main__":
         package_dir={"": "src"},
         install_requires=[
             # Fix cryptographyMinimum in tox.ini when changing this!
-            "cryptography==1.5.dev1+payjp0",
+            "cryptography==1.9.dev1+payjp0",
             "six>=1.5.2"
         ],
         dependency_links=[
