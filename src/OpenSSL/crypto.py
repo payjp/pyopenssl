@@ -124,7 +124,7 @@ def _set_asn1_time(boundary, when):
     set_result = _lib.ASN1_TIME_set_string(boundary, when)
     if set_result == 0:
         dummy = _ffi.gc(_lib.ASN1_STRING_new(), _lib.ASN1_STRING_free)
-        _lib.ASN1_STRING_set_string(dummy, when, len(when))
+        _lib.ASN1_TIME_set_string(dummy, when, len(when))
         check_result = _lib.ASN1_TIME_check(dummy)
         if not check_result:
             raise ValueError("Invalid string")
